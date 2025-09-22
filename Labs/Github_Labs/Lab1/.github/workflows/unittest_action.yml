@@ -1,0 +1,71 @@
+name: Python Unittests
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Labs/Github_Labs/Lab1/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    # Use the repo workspace so PYTHONPATH resolves correctly on the runner
+    env:
+      PYTHONUNBUFFERED: 1
+      PYTHONPATH: ${{ github.workspace }}/Labs/Github_Labs/Lab1
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Show workspace (debug)
+        run: |
+          echo "Workspace: $GITHUB_WORKSPACE"
+          ls -la "${{ github.workspace }}/Labs/Github_Labs/Lab1" || true
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.8
+
+      - name: Show python + sys.path (debug)
+        run: |
+          python -V
+          python - <<'PY'
+import sys, os
+print("cwd:", os.getcwd())
+print("sys.path:")
+print("\n".join(sys.path))
+PY
+
+      - name: Install dependencies (ensure pytest present)
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f Labs/Github_Labs/Lab1/requirements.txt ]; then
+            pip install -r Labs/Github_Labs/Lab1/requirements.txt || true
+          fi
+          # ensure pytest available for running tests
+          python -m pip show pytest >/dev/null 2>&1 || python -m pip install pytest
+
+      - name: Create src package marker if missing (prevents ModuleNotFoundError)
+        run: |
+          if [ ! -f Labs/Github_Labs/Lab1/src/__init__.py ]; then
+            echo "# package marker" > Labs/Github_Labs/Lab1/src/__init__.py
+            echo "Created src/__init__.py"
+          else
+            echo "src/__init__.py already exists"
+          fi
+
+      - name: Run unittests
+        working-directory: Labs/Github_Labs/Lab1
+        run: python -m unittest test.test_area_calculator_unittest -v
+
+      - name: Notify on success
+        if: success()
+        run: echo "Unit tests passed successfully"
+
+      - name: Notify on failure
+        if: failure()
+        run: echo "Unit tests failed"
