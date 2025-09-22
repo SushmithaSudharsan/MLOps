@@ -1,8 +1,12 @@
+import unittest
+import os
+import sys
 import math
 from src import calculator
-import sys
-import os
-import unittest
+
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
 from src.area_calculator import (
     area_square,
@@ -11,11 +15,6 @@ from src.area_calculator import (
     area_triangle,
     area_trapezoid,
 )
-
-# Get the path to the project's root directory
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-sys.path.append(project_root)
-
 
 class TestCalculator(unittest.TestCase):
 
