@@ -30,6 +30,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Show workspace (debug)
+        shell: bash
         run: |
           echo "Workspace: $GITHUB_WORKSPACE"
           ls -la "${{ github.workspace }}/Labs/Github_Labs/Lab1" || true
@@ -40,6 +41,7 @@ jobs:
           python-version: 3.8
 
       - name: Show python + sys.path (debug)
+        shell: bash
         run: |
           python -V
           python - <<'PY'
@@ -50,6 +52,7 @@ print("\n".join(sys.path))
 PY
 
       - name: Install dependencies (ensure pytest present)
+        shell: bash
         run: |
           python -m pip install --upgrade pip
           if [ -f Labs/Github_Labs/Lab1/requirements.txt ]; then
@@ -58,6 +61,7 @@ PY
           python -m pip show pytest >/dev/null 2>&1 || python -m pip install pytest
 
       - name: Create src package marker if missing (prevents ModuleNotFoundError)
+        shell: bash
         run: |
           if [ ! -f Labs/Github_Labs/Lab1/src/__init__.py ]; then
             echo "# package marker" > Labs/Github_Labs/Lab1/src/__init__.py
@@ -67,16 +71,18 @@ PY
           fi
 
       - name: Run tests and generate XML report
+        shell: bash
         working-directory: Labs/Github_Labs/Lab1
         run: |
+          set -o pipefail
           pytest test -q --junitxml=pytest-report.xml --maxfail=1 --showlocals
 
-      - name: Upload test results
+      - name: Upload pytest report
         if: always()
         uses: actions/upload-artifact@v3
         with:
-          name: test-results
-          path: Labs/Github_Labs/Lab1/pytest-report.xml
+          name: lab1-pytest-report
+          path: ${{ github.workspace }}/Labs/Github_Labs/Lab1/pytest-report.xml
 
       - name: Notify on success
         if: success()

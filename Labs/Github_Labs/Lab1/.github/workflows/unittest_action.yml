@@ -11,7 +11,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    # Use the repo workspace so PYTHONPATH resolves correctly on the runner
     env:
       PYTHONUNBUFFERED: 1
       PYTHONPATH: ${{ github.workspace }}/Labs/Github_Labs/Lab1
@@ -24,11 +23,12 @@ jobs:
         run: |
           echo "Workspace: $GITHUB_WORKSPACE"
           ls -la "${{ github.workspace }}/Labs/Github_Labs/Lab1" || true
+        shell: bash
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.8
+          python-version: '3.8'
 
       - name: Show python + sys.path (debug)
         run: |
@@ -39,6 +39,7 @@ print("cwd:", os.getcwd())
 print("sys.path:")
 print("\n".join(sys.path))
 PY
+        shell: bash
 
       - name: Install dependencies (ensure pytest present)
         run: |
@@ -46,8 +47,9 @@ PY
           if [ -f Labs/Github_Labs/Lab1/requirements.txt ]; then
             pip install -r Labs/Github_Labs/Lab1/requirements.txt || true
           fi
-          # ensure pytest available for running tests
+          # ensure pytest present for any tests that might use it
           python -m pip show pytest >/dev/null 2>&1 || python -m pip install pytest
+        shell: bash
 
       - name: Create src package marker if missing (prevents ModuleNotFoundError)
         run: |
@@ -57,10 +59,13 @@ PY
           else
             echo "src/__init__.py already exists"
           fi
+        shell: bash
 
-      - name: Run unittests
+      - name: Run unittests (discover)
         working-directory: Labs/Github_Labs/Lab1
-        run: python -m unittest test.test_area_calculator_unittest -v
+        run: |
+          python -m unittest discover -v -s test
+        shell: bash
 
       - name: Notify on success
         if: success()
