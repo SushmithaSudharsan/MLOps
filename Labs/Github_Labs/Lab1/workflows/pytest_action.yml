@@ -20,31 +20,56 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     env:
-      # ensure tests can import src package
-      PYTHONPATH: Labs/Github_Labs/Lab1
       PYTHONUNBUFFERED: 1
+      PYTHONPATH: ${{ github.workspace }}/Labs/Github_Labs/Lab1
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Show workspace (debug)
+        run: |
+          echo "Workspace: $GITHUB_WORKSPACE"
+          ls -la "${{ github.workspace }}/Labs/Github_Labs/Lab1" || true
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: 3.8
 
-      - name: Install dependencies
+      - name: Show python + sys.path (debug)
+        run: |
+          python -V
+          python - <<'PY'
+import sys, os
+print("cwd:", os.getcwd())
+print("sys.path:")
+print("\n".join(sys.path))
+PY
+
+      - name: Install dependencies (ensure pytest present)
         run: |
           python -m pip install --upgrade pip
           if [ -f Labs/Github_Labs/Lab1/requirements.txt ]; then
-            pip install -r Labs/Github_Labs/Lab1/requirements.txt
+            pip install -r Labs/Github_Labs/Lab1/requirements.txt || true
+          fi
+          python -m pip show pytest >/dev/null 2>&1 || python -m pip install pytest
+
+      - name: Create src package marker if missing (prevents ModuleNotFoundError)
+        run: |
+          if [ ! -f Labs/Github_Labs/Lab1/src/__init__.py ]; then
+            echo "# package marker" > Labs/Github_Labs/Lab1/src/__init__.py
+            echo "Created src/__init__.py"
+          else
+            echo "src/__init__.py already exists"
           fi
 
       - name: Run tests and generate XML report
         working-directory: Labs/Github_Labs/Lab1
         run: |
-          pytest test -q --junitxml=pytest-report.xml
+          pytest test -q --junitxml=pytest-report.xml --maxfail=1 --showlocals
 
       - name: Upload test results
         if: always()
