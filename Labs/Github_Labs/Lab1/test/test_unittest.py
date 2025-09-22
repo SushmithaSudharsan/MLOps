@@ -1,3 +1,9 @@
+import math
+from src import calculator
+import sys
+import os
+import unittest
+
 from src.area_calculator import (
     area_square,
     area_rectangle,
@@ -5,11 +11,6 @@ from src.area_calculator import (
     area_triangle,
     area_trapezoid,
 )
-import math
-from src import calculator
-import sys
-import os
-import unittest
 
 # Get the path to the project's root directory
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
