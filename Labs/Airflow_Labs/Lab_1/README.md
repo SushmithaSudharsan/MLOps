@@ -125,7 +125,7 @@ Cloud
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
 
     # Additional python package
-    _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:- pandas }
+    _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:- pandas kneed scikit-learn numpy}
 
     # Output dir
     - ${AIRFLOW_PROJ_DIR:-.}/working_data:/opt/airflow/working_data
