@@ -38,9 +38,6 @@ MLOps Labs/
 ├── README.md
 └── requirements.txt
 
-yaml
-Copy code
-
 ---
 
 ## 🧠 Tech Stack
@@ -59,7 +56,6 @@ Copy code
 ## ⚙️ Setup Instructions
 
 ### 1️⃣ Create and activate a virtual environment
-```bash
 cd "MLOps Labs/Labs/API_Labs/FastAPI_Labs"
 python -m venv fastapi_env
 
@@ -67,14 +63,14 @@ python -m venv fastapi_env
 fastapi_env\Scripts\activate
 # macOS / Linux
 source fastapi_env/bin/activate
-2️⃣ Install dependencies
-bash
-Copy code
+
+2. Install dependencies
 pip install -r requirements.txt
-3️⃣ Verify dataset
+
+3. Verify dataset
 Make sure the file Walmart.csv is present inside the main FastAPI_Labs/ folder.
 
-🧮 Training the Model
+- Training the Model
 Run the training script to:
 
 Load and clean the dataset
@@ -84,15 +80,10 @@ Engineer features (lags, rolling means, date components)
 Train a RandomForest model
 
 Save all model artifacts to model/
-
-bash
-Copy code
 cd src
 python train.py
 Expected output:
 
-yaml
-Copy code
 Loading data...
 Training RandomForestRegressor...
 Test RMSE: 2320.45
@@ -100,8 +91,6 @@ Test MAE: 1809.23
 Saved model to: ../model/walmart_model.pkl
 Artifacts created:
 
-pgsql
-Copy code
 model/
 ├── walmart_model.pkl
 ├── imputer.pkl
@@ -110,35 +99,31 @@ model/
 🚀 Running the FastAPI App
 Start the API server:
 
-bash
-Copy code
 uvicorn main:app --reload
 Output:
 
-arduino
-Copy code
 INFO:     Uvicorn running on http://127.0.0.1:8000
 Open in browser:
 👉 http://127.0.0.1:8000/docs
 
-🧪 Testing the API
+- Testing the API
 🩺 Health Check
 Endpoint: GET /
 
 Response:
-
 json
 Copy code
 {
   "status": "healthy",
   "message": "Walmart sales forecasting API"
 }
-📈 Model Info
+
+- Model Info
 Endpoint: GET /model-info
 
 Returns model metrics (RMSE, MAE, training size, etc.).
 
-🔮 Predict Weekly Sales
+- Predict Weekly Sales
 Endpoint: POST /predict
 
 Example Request Body:
@@ -167,6 +152,7 @@ Copy code
 {
   "predicted_weekly_sales": 13025.47
 }
+
 🧩 API Endpoints Summary
 Method	Endpoint	Description
 GET	/	Health check
@@ -174,16 +160,15 @@ GET	/model-info	Returns model metadata
 POST	/predict	Predict weekly Walmart sales
 POST	/feature_engineer	(Optional) Generate lag & rolling features
 
-🧰 Utility Modules
+- Utility Modules
 File	Description
 data.py	Loads and preprocesses the Walmart dataset. Builds lag, rolling, and date features.
 train.py	Trains a RandomForest model and saves all artifacts.
 predict.py	Loads trained model and returns predictions for API inputs.
 main.py	Defines FastAPI routes and integrates prediction logic.
 
-🧠 How It Works
-csharp
-Copy code
+- How It Works
+
              ┌───────────────┐
              │  Walmart.csv  │
              └──────┬────────┘
@@ -205,7 +190,7 @@ Copy code
 🛑 Stopping the Server
 Press CTRL + C in the terminal running FastAPI.
 
-💡 Future Improvements
+- Future Improvements
 Deploy API to Render, Hugging Face Spaces, or AWS Lambda.
 
 Automate retraining and version control (MLOps pipeline).
@@ -214,8 +199,5 @@ Add Streamlit dashboard for visual forecasting.
 
 Containerize using Docker for production deployment.
 
-👩‍💻 Author
+- Author
 Sushmitha Sudharsan
-Graduate Student – Data Analytics Engineering
-
-Focused on Data Science, Analytics, and MLOps applications.
