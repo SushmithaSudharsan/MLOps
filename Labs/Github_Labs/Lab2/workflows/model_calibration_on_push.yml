@@ -11,85 +11,55 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v2
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v2
       with:
-        python-version: '3.9'
+        python-version: 3.9
 
     - name: Install dependencies
-      run: pip install -r requirements.txt
+      run: pip install -r Github_Labs/Lab2/requirements.txt
 
-    # --------------------------------------------------
-    # 1) Generate timestamp for file versioning
-    # --------------------------------------------------
-    - name: Generate Timestamp
-      id: tstamp
-      run: echo "ts=$(date '+%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
-
-    # --------------------------------------------------
-    # 2) Create directories for models/metrics if missing
-    # --------------------------------------------------
-    - name: Create directories
+    - name: Generate and Store Timestamp
       run: |
-        mkdir -p models
-        mkdir -p metrics
+        timestamp=$(date '+%Y%m%d%H%M%S')
+        echo "$timestamp" > timestamp.txt
+      id: timestamp
 
-    # --------------------------------------------------
-    # 3) Ensure training script is executable
-    # --------------------------------------------------
-    - name: Make training script executable
-      run: chmod +x ./src/train_model.py
+    - name: Ensure Lab2 directories exist
+      run: |
+        mkdir -p Github_Labs/Lab2/models
+        mkdir -p Github_Labs/Lab2/metrics
 
-    # --------------------------------------------------
-    # 4) Train the model
-    # --------------------------------------------------
     - name: Retrain Model
-      run: python ./src/train_model.py --timestamp "${{ steps.tstamp.outputs.ts }}"
-
-    # --------------------------------------------------
-    # 5) Evaluate the model + save metrics file
-    # --------------------------------------------------
-    - name: Evaluate Model
-      id: evalstep
       run: |
-        timestamp="${{ steps.tstamp.outputs.ts }}"
+        timestamp=$(cat timestamp.txt)
+        python Github_Labs/Lab2/src/train_model.py --timestamp "$timestamp"
 
-        python ./src/evaluate_model.py --timestamp "$timestamp"
-
-        metrics_file="${timestamp}_metrics.json"
-        mv "$metrics_file" metrics/
-        echo "metrics_path=metrics/$metrics_file" >> $GITHUB_OUTPUT
-
-    # --------------------------------------------------
-    # 6) Move the trained model into models/
-    # --------------------------------------------------
-    - name: Store Model Version
-      id: modelstep
+    - name: Evaluate Model and Log Metrics
       run: |
-        timestamp="${{ steps.tstamp.outputs.ts }}"
+        timestamp=$(cat timestamp.txt)
+        python Github_Labs/Lab2/src/evaluate_model.py --timestamp "$timestamp"
+        metrics_filename="${timestamp}_metrics.json"
+        mv $metrics_filename Github_Labs/Lab2/metrics/$metrics_filename
+      continue-on-error: false
 
-        # Your Wine dataset script saves model as:
-        # model_<timestamp>_rf_model.joblib
-        model_file="model_${timestamp}_rf_model.joblib"
+    - name: Store and Version the New Model
+      run: |
+        timestamp=$(cat timestamp.txt)
+        model_filename="model_${timestamp}_dt_model.joblib"
+        mv $model_filename Github_Labs/Lab2/models/$model_filename
 
-        mv "$model_file" models/
-        echo "model_path=models/$model_file" >> $GITHUB_OUTPUT
-
-    # --------------------------------------------------
-    # 7) Commit and push the updated model + metrics
-    # --------------------------------------------------
     - name: Commit and Push Changes
       run: |
         git config --global user.email "github-actions@github.com"
         git config --global user.name "github-actions"
-
-        git add models/ metrics/
-
-        git commit -m "Add model + metrics for ${{ steps.tstamp.outputs.ts }}" || \
-          echo "No changes to commit."
-
+        timestamp=$(cat timestamp.txt)
+        metrics_filename="${timestamp}_metrics.json"
+        model_filename="model_${timestamp}_dt_model.joblib"
+        git add Github_Labs/Lab2/metrics/$metrics_filename Github_Labs/Lab2/models/$model_filename
+        git commit -m "Add model + metrics for $timestamp" || echo "Nothing to commit"
         git push
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
