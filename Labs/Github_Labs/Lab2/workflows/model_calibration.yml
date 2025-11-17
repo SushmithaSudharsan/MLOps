@@ -1,8 +1,8 @@
 name: Periodic Model Calibration
 
-on: 
+on:
   schedule:
-    - cron: '0 0 * * *'  # daily at midnight
+    - cron: '0 0 * * *'  # every day at midnight
 
 jobs:
   calibrate:
@@ -18,9 +18,9 @@ jobs:
           python-version: 3.9
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r Labs/Github_Labs/Lab2/requirements.txt
 
-      - name: Generate and Store Timestamp
+      - name: Generate timestamp
         run: |
           timestamp=$(date '+%Y%m%d%H%M%S')
           echo "$timestamp" > timestamp.txt
@@ -28,42 +28,34 @@ jobs:
 
       - name: Ensure directories exist
         run: |
-          mkdir -p metrics
-          mkdir -p models
+          mkdir -p Labs/Github_Labs/Lab2/models
+          mkdir -p Labs/Github_Labs/Lab2/metrics
+          mkdir -p Labs/Github_Labs/Lab2/data
+          mkdir -p Labs/Github_Labs/Lab2/mlruns
 
-      - name: Retrain Model
+      - name: Train Model
         run: |
           timestamp=$(cat timestamp.txt)
-          echo "Retraining model with timestamp: $timestamp"
-          python ./src/train_model.py --timestamp "$timestamp"
+          python Labs/Github_Labs/Lab2/src/train_model.py --timestamp "$timestamp"
 
-      - name: Evaluate Model and Log Metrics
+      - name: Evaluate Model
         run: |
           timestamp=$(cat timestamp.txt)
-          echo "Evaluating model with timestamp: $timestamp"
-          python ./src/evaluate_model.py --timestamp "$timestamp"
-          metrics_filename="${timestamp}_metrics.json"
-          echo "Metrics file: $metrics_filename"
-          mv $metrics_filename metrics/$metrics_filename
-          ls -l metrics
+          python Labs/Github_Labs/Lab2/src/evaluate_model.py --timestamp "$timestamp"
 
-      - name: Store and Version the New Model
+      - name: Debug files
         run: |
-          timestamp=$(cat timestamp.txt)
-          model_filename="model_${timestamp}_rf_model.joblib"
-          echo "Moving model file: $model_filename"
-          mv $model_filename models/$model_filename
-          ls -l models
+          echo "Models folder:"
+          ls -l Labs/Github_Labs/Lab2/models
+          echo "Metrics folder:"
+          ls -l Labs/Github_Labs/Lab2/metrics
 
-      - name: Commit and Push Changes
+      - name: Commit and push
         run: |
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
-          timestamp=$(cat timestamp.txt)
-          metrics_filename="${timestamp}_metrics.json"
-          model_filename="model_${timestamp}_rf_model.joblib"
-          git add metrics/$metrics_filename models/$model_filename
-          git commit -m "Add metrics and updated model for $timestamp" || echo "Nothing to commit"
+          git add Labs/Github_Labs/Lab2/models/* Labs/Github_Labs/Lab2/metrics/*
+          git commit -m "Add model + metrics for $(cat timestamp.txt)" || echo "Nothing to commit"
           git push origin main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

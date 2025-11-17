@@ -1,12 +1,12 @@
-import mlflow
-import datetime
 import os
 import pickle
+import argparse
 from joblib import dump
 from sklearn.datasets import load_wine
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, f1_score
-import argparse
+import mlflow
+import datetime
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -16,25 +16,30 @@ if __name__ == '__main__':
     timestamp = args.timestamp
     print(f"[train_model.py] Timestamp: {timestamp}")
 
-    # Load Wine dataset
+    # Paths
+    base_dir = "Labs/Github_Labs/Lab2"
+    model_dir = os.path.join(base_dir, "models")
+    data_dir = os.path.join(base_dir, "data")
+    mlruns_dir = os.path.join(base_dir, "mlruns")
+
+    os.makedirs(model_dir, exist_ok=True)
+    os.makedirs(data_dir, exist_ok=True)
+    os.makedirs(mlruns_dir, exist_ok=True)
+
+    # Load dataset
     wine = load_wine()
     X = wine.data
     y = wine.target
     print(f"[train_model.py] Dataset shape: {X.shape}")
 
-    # Ensure directories exist
-    os.makedirs("data", exist_ok=True)
-    os.makedirs("models", exist_ok=True)
-    os.makedirs("mlruns", exist_ok=True)
-
     # Save dataset
-    with open('data/data.pickle', 'wb') as f:
+    with open(os.path.join(data_dir, 'data.pickle'), 'wb') as f:
         pickle.dump(X, f)
-    with open('data/target.pickle', 'wb') as f:
+    with open(os.path.join(data_dir, 'target.pickle'), 'wb') as f:
         pickle.dump(y, f)
 
     # MLflow setup
-    mlflow.set_tracking_uri("./mlruns")
+    mlflow.set_tracking_uri(mlruns_dir)
     experiment_name = f"Wine_{timestamp}"
     try:
         experiment_id = mlflow.create_experiment(experiment_name)
@@ -61,5 +66,6 @@ if __name__ == '__main__':
 
         # Save model
         model_filename = f"model_{timestamp}_rf_model.joblib"
-        dump(clf, f"models/{model_filename}")
-        print(f"[train_model.py] Model saved: models/{model_filename}")
+        dump(clf, os.path.join(model_dir, model_filename))
+        print(
+            f"[train_model.py] Model saved: {os.path.join(model_dir, model_filename)}")
