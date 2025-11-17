@@ -11,8 +11,10 @@ from flask import Flask, redirect, render_template
 
 # ---------- Config (Airflow 3: use REST with Basic Auth via FAB API backend) ----------
 WEBSERVER = os.getenv("AIRFLOW_WEBSERVER", "http://airflow-apiserver:8080")
-AF_USER   = os.getenv("AIRFLOW_USERNAME", os.getenv("_AIRFLOW_WWW_USER_USERNAME", "airflow"))
-AF_PASS   = os.getenv("AIRFLOW_PASSWORD", os.getenv("_AIRFLOW_WWW_USER_PASSWORD", "airflow"))
+AF_USER = os.getenv("AIRFLOW_USERNAME", os.getenv(
+    "_AIRFLOW_WWW_USER_USERNAME", "airflow"))
+AF_PASS = os.getenv("AIRFLOW_PASSWORD", os.getenv(
+    "_AIRFLOW_WWW_USER_PASSWORD", "airflow"))
 TARGET_DAG_ID = os.getenv("TARGET_DAG_ID", "Airflow_Lab2")
 
 # ---------- Default args ----------
@@ -23,6 +25,7 @@ default_args = {
 
 # ---------- Flask app ----------
 app = Flask(__name__, template_folder="templates")
+
 
 def get_latest_run_info():
     """
@@ -64,19 +67,23 @@ def index():
     ok, _ = get_latest_run_info()
     return redirect("/success" if ok else "/failure")
 
+
 @app.route("/success")
 def success():
     ok, info = get_latest_run_info()
     return render_template("success.html", **info)
+
 
 @app.route("/failure")
 def failure():
     ok, info = get_latest_run_info()
     return render_template("failure.html", **info)
 
+
 @app.route("/health")
 def health():
     return "ok", 200
+
 
 def start_flask_app():
     """
@@ -88,6 +95,7 @@ def start_flask_app():
     # If app.run ever returns, keep the task alive:
     while True:
         time.sleep(60)
+
 
 # ---------- DAG ----------
 flask_api_dag = DAG(

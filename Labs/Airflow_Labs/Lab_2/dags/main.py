@@ -31,7 +31,8 @@ dag = DAG(
     schedule="@daily",
     catchup=False,
     tags=["example"],
-    owner_links={"Ramin Mohammadi": "https://github.com/raminmohammadi/MLOps/"},
+    owner_links={
+        "Ramin Mohammadi": "https://github.com/raminmohammadi/MLOps/"},
     max_active_runs=1,
 )
 
@@ -45,7 +46,7 @@ owner_task = BashOperator(
 
 send_email = EmailOperator(
     task_id="send_email",
-    to="rey.mhmmd@gmail.com",
+    to="sushmithagithubprojects@gmail.com",
     subject="Notification from Airflow",
     html_content="<p>This is a notification email sent from Airflow.</p>",
     dag=dag,
