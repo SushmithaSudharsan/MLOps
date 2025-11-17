@@ -10,56 +10,61 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.9
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
 
-    - name: Install dependencies
-      run: pip install -r Github_Labs/Lab2/requirements.txt
+      - name: Install dependencies
+        run: pip install -r Github_Labs/Lab2/requirements.txt
 
-    - name: Generate and Store Timestamp
-      run: |
-        timestamp=$(date '+%Y%m%d%H%M%S')
-        echo "$timestamp" > timestamp.txt
-      id: timestamp
+      - name: Generate and Store Timestamp
+        run: |
+          timestamp=$(date '+%Y%m%d%H%M%S')
+          echo "$timestamp" > timestamp.txt
+          echo "Generated timestamp: $timestamp"
 
-    - name: Ensure Lab2 directories exist
-      run: |
-        mkdir -p Github_Labs/Lab2/models
-        mkdir -p Github_Labs/Lab2/metrics
+      - name: Ensure Lab2 directories exist
+        run: |
+          mkdir -p Github_Labs/Lab2/models
+          mkdir -p Github_Labs/Lab2/metrics
 
-    - name: Retrain Model
-      run: |
-        timestamp=$(cat timestamp.txt)
-        python Github_Labs/Lab2/src/train_model.py --timestamp "$timestamp"
+      - name: Retrain Model
+        run: |
+          timestamp=$(cat timestamp.txt)
+          echo "Training model with timestamp: $timestamp"
+          python Github_Labs/Lab2/src/train_model.py --timestamp "$timestamp"
 
-    - name: Evaluate Model and Log Metrics
-      run: |
-        timestamp=$(cat timestamp.txt)
-        python Github_Labs/Lab2/src/evaluate_model.py --timestamp "$timestamp"
-        metrics_filename="${timestamp}_metrics.json"
-        mv $metrics_filename Github_Labs/Lab2/metrics/$metrics_filename
-      continue-on-error: false
+      - name: Evaluate Model and Log Metrics
+        run: |
+          timestamp=$(cat timestamp.txt)
+          echo "Evaluating model with timestamp: $timestamp"
+          python Github_Labs/Lab2/src/evaluate_model.py --timestamp "$timestamp"
+          metrics_filename="${timestamp}_metrics.json"
+          echo "Metrics file: $metrics_filename"
+          ls -l
+          mv $metrics_filename Github_Labs/Lab2/metrics/$metrics_filename
 
-    - name: Store and Version the New Model
-      run: |
-        timestamp=$(cat timestamp.txt)
-        model_filename="model_${timestamp}_dt_model.joblib"
-        mv $model_filename Github_Labs/Lab2/models/$model_filename
+      - name: Store and Version the New Model
+        run: |
+          timestamp=$(cat timestamp.txt)
+          model_filename="model_${timestamp}_rf_model.joblib"
+          echo "Moving model file: $model_filename"
+          mv $model_filename Github_Labs/Lab2/models/$model_filename
+          ls -l Github_Labs/Lab2/models
 
-    - name: Commit and Push Changes
-      run: |
-        git config --global user.email "github-actions@github.com"
-        git config --global user.name "github-actions"
-        timestamp=$(cat timestamp.txt)
-        metrics_filename="${timestamp}_metrics.json"
-        model_filename="model_${timestamp}_dt_model.joblib"
-        git add Github_Labs/Lab2/metrics/$metrics_filename Github_Labs/Lab2/models/$model_filename
-        git commit -m "Add model + metrics for $timestamp" || echo "Nothing to commit"
-        git push
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "github-actions"
+          timestamp=$(cat timestamp.txt)
+          metrics_filename="${timestamp}_metrics.json"
+          model_filename="model_${timestamp}_rf_model.joblib"
+          git add Github_Labs/Lab2/metrics/$metrics_filename Github_Labs/Lab2/models/$model_filename
+          git commit -m "Add model + metrics for $timestamp" || echo "Nothing to commit"
+          git push origin main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
