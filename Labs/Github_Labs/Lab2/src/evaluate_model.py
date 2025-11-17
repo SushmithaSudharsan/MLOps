@@ -2,7 +2,7 @@ import os
 import json
 import argparse
 import joblib
-from sklearn.datasets import make_classification
+import pickle
 from sklearn.metrics import f1_score
 
 if __name__ == '__main__':
@@ -17,6 +17,7 @@ if __name__ == '__main__':
     base_dir = "Labs/Github_Labs/Lab2"
     model_dir = os.path.join(base_dir, "models")
     metrics_dir = os.path.join(base_dir, "metrics")
+    data_dir = os.path.join(base_dir, "data")
     os.makedirs(metrics_dir, exist_ok=True)
 
     # Load model
@@ -27,23 +28,25 @@ if __name__ == '__main__':
     clf = joblib.load(model_filename)
     print(f"[evaluate_model.py] Loaded model: {model_filename}")
 
-    # Generate synthetic data
-    X, y = make_classification(
-        n_samples=1000,
-        n_features=6,
-        n_informative=3,
-        n_redundant=0,
-        n_repeated=0,
-        n_classes=2,
-        random_state=0,
-        shuffle=True,
-    )
+    # Load the dataset saved during training
+    X_file = os.path.join(data_dir, "data.pickle")
+    y_file = os.path.join(data_dir, "target.pickle")
+
+    if not os.path.exists(X_file) or not os.path.exists(y_file):
+        raise FileNotFoundError(
+            "Training data not found. Make sure train_model.py has run.")
+
+    with open(X_file, 'rb') as f:
+        X = pickle.load(f)
+    with open(y_file, 'rb') as f:
+        y = pickle.load(f)
+
     print(
-        f"[evaluate_model.py] Generated synthetic data: X shape={X.shape}, y shape={y.shape}")
+        f"[evaluate_model.py] Loaded dataset: X shape={X.shape}, y shape={y.shape}")
 
     # Predict and calculate metrics
     y_pred = clf.predict(X)
-    f1 = f1_score(y, y_pred)
+    f1 = f1_score(y, y_pred, average='macro')
     metrics = {"F1_Score": f1}
     print(f"[evaluate_model.py] F1 Score: {f1}")
 
