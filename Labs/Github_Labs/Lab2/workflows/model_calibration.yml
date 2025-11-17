@@ -58,4 +58,5 @@ jobs:
           git commit -m "Add model + metrics for $(cat timestamp.txt)" || echo "Nothing to commit"
           git push origin main
         env:
+        
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
