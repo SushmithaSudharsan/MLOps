@@ -16,8 +16,8 @@ if __name__ == '__main__':
     print(f"[evaluate_model.py] Timestamp: {timestamp}")
 
     # Define folder paths
-    model_dir = "Github_Labs/Lab2/models"
-    metrics_dir = "Github_Labs/Lab2/metrics"
+    model_dir = "Labs/Github_Labs/Lab2/models"
+    metrics_dir = "Labs/Github_Labs/Lab2/metrics"
 
     os.makedirs(metrics_dir, exist_ok=True)
 
