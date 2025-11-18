@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   retrain:
@@ -11,52 +12,73 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: 3.9
 
       - name: Install dependencies
-        run: pip install -r Labs/Github_Labs/Lab2/requirements.txt
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r Labs/Github_Labs/Lab2/requirements.txt
 
       - name: Generate timestamp
+        id: timestamp
         run: |
           timestamp=$(date '+%Y%m%d%H%M%S')
-          echo "$timestamp" > timestamp.txt
+          echo "TIMESTAMP=$timestamp" >> $GITHUB_ENV
           echo "Generated timestamp: $timestamp"
 
-      - name: Ensure directories exist
+      - name: Create necessary directories
         run: |
           mkdir -p Labs/Github_Labs/Lab2/models
           mkdir -p Labs/Github_Labs/Lab2/metrics
           mkdir -p Labs/Github_Labs/Lab2/data
           mkdir -p Labs/Github_Labs/Lab2/mlruns
+          mkdir -p Labs/Github_Labs/Lab2/plots
 
-      - name: Train Model
+      - name: Train Wine Model
         run: |
-          timestamp=$(cat timestamp.txt)
-          python Labs/Github_Labs/Lab2/src/train_model.py --timestamp "$timestamp"
+          python Labs/Github_Labs/Lab2/src/train_model.py \
+            --timestamp "${{ env.TIMESTAMP }}" \
+            --model_type rf
 
-      - name: Evaluate Model
+      - name: Evaluate Wine Model
         run: |
-          timestamp=$(cat timestamp.txt)
-          python Labs/Github_Labs/Lab2/src/evaluate_model.py --timestamp "$timestamp"
+          python Labs/Github_Labs/Lab2/src/evaluate_model.py \
+            --timestamp "${{ env.TIMESTAMP }}" \
+            --model_type rf
 
-      - name: Debug files
+      - name: List generated files
         run: |
-          echo "Models folder:"
-          ls -l Labs/Github_Labs/Lab2/models
-          echo "Metrics folder:"
-          ls -l Labs/Github_Labs/Lab2/metrics
+          echo "=== Models ==="
+          ls -lh Labs/Github_Labs/Lab2/models/
+          echo "=== Metrics ==="
+          ls -lh Labs/Github_Labs/Lab2/metrics/
+          echo "=== Plots ==="
+          ls -lh Labs/Github_Labs/Lab2/plots/
 
-      - name: Commit and push
+      - name: Commit and push models + metrics
         run: |
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
-          git add Labs/Github_Labs/Lab2/models/* Labs/Github_Labs/Lab2/metrics/*
-          git commit -m "Add model + metrics for $(cat timestamp.txt)" || echo "Nothing to commit"
-          git push origin main
+
+          # Add generated files
+          git add Labs/Github_Labs/Lab2/models/* Labs/Github_Labs/Lab2/metrics/* || true
+
+          # Add .gitkeep to keep folders if empty
+          touch Labs/Github_Labs/Lab2/models/.gitkeep
+          touch Labs/Github_Labs/Lab2/metrics/.gitkeep
+          git add Labs/Github_Labs/Lab2/models/.gitkeep Labs/Github_Labs/Lab2/metrics/.gitkeep
+
+          # Commit only if there are changes
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update Wine model and metrics for $(date '+%Y-%m-%d %H:%M:%S')"
+            git push origin main
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
