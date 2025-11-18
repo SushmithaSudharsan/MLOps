@@ -1,8 +1,13 @@
-name: Periodic Model Calibration
+name: Model Retraining on Push to Main
 
-on: 
-  schedule:
-    - cron: '0 0 * * *'  # Every day at midnight
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   retrain:
@@ -10,7 +15,9 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Set up Python
       uses: actions/setup-python@v2
@@ -20,37 +27,57 @@ jobs:
     - name: Install dependencies
       run: pip install -r requirements.txt
 
-    - name: Ensure directories exist
+    - name: Generate and Store Timestamp
       run: |
-        mkdir -p $GITHUB_WORKSPACE/models
-        mkdir -p $GITHUB_WORKSPACE/metrics
+        timestamp=$(date '+%Y%m%d%H%M%S')
+        echo "$timestamp" > timestamp.txt
+      id: timestamp 
 
-    - name: Generate Timestamp
-      id: timestamp
-      run: echo "timestamp=$(date '+%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
+    - name: Check File Permissions
+      run: |
+        ls -l ./src/train_model.py
 
     - name: Set File Permissions
-      run: chmod +x ./src/train_model.py ./src/evaluate_model.py
+      run: |
+        chmod +x ./src/train_model.py
+
+    - name: Clean old artifacts
+      run: |
+        rm -rf models data metrics
 
     - name: Retrain Model
       run: |
-        python ./src/train_model.py --timestamp "${{ steps.timestamp.outputs.timestamp }}" --base_dir "$GITHUB_WORKSPACE"
+        timestamp=$(cat timestamp.txt)
+        python ./src/train_model.py --timestamp "$timestamp"
 
     - name: Evaluate Model and Log Metrics
       run: |
-        python ./src/evaluate_model.py --timestamp "${{ steps.timestamp.outputs.timestamp }}" --base_dir "$GITHUB_WORKSPACE"
+        timestamp=$(cat timestamp.txt)
+        python ./src/evaluate_model.py --timestamp "$timestamp"
+        metrics_filename="metrics/${timestamp}_metrics.json"
+        # Sanity check: confirm file exists
+        test -f "$metrics_filename" && echo "✅ Found $metrics_filename" || (echo "❌ Missing $metrics_filename"; ls -la metrics; exit 1)
+
+    - name: Run unit tests
+      run: |
+        pytest -v test/test_model_training.py
+        pytest -v test/test_evaluate_model.py
+
+    - name: Store and Version the New Model
+      run: |
+        timestamp=$(cat timestamp.txt)
+        model_filename="models/model_${timestamp}_rf_model.joblib"
+        test -f "$model_filename" && echo "✅ Found $model_filename" || (echo "❌ Missing $model_filename"; ls -la models; exit 1)
 
     - name: Commit and Push Changes
       run: |
-        timestamp="${{ steps.timestamp.outputs.timestamp }}"
-        model_filename="model_${timestamp}_rf_model.joblib"
-        metrics_filename="${timestamp}_metrics.json"
-
-        git config --global user.email "26876927+raminmohammadi@users.noreply.github.com"
-        git config --global user.name "raminmohammadi"
-
-        git add $GITHUB_WORKSPACE/models/$model_filename $GITHUB_WORKSPACE/metrics/$metrics_filename
-        git commit -m "Add metrics and updated model for timestamp $timestamp"
+        git config --global user.email "priyankasenthil25@gmail.com"
+        git config --global user.name "priyanka-senthil"
+        timestamp=$(cat timestamp.txt)
+        metrics_filename="metrics/${timestamp}_metrics.json"
+        model_filename="models/model_${timestamp}_rf_model.joblib"
+        git add "$metrics_filename" "$model_filename"
+        git commit -m "Add metrics and updated model" || echo "No changes to commit"
         git push
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -3,6 +3,10 @@ name: Periodic Model Calibration
 on: 
   schedule:
     - cron: '0 0 * * *'  #minutes, hours, day, month, day of week 
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   retrain:
@@ -10,7 +14,10 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0  # Fetch full history for proper rebasing
 
     - name: Set up Python
       uses: actions/setup-python@v2
@@ -34,31 +41,49 @@ jobs:
       run: |
         chmod +x ./src/train_model.py
 
+    - name: Clean old artifacts
+      run: |
+        rm -rf models data metrics
+
     - name: Retrain Model
       run: |
-        timestamp=$(cat timestamp.txt) # Use the timestamp in your training script
+        timestamp=$(cat timestamp.txt)
         python ./src/train_model.py --timestamp "$timestamp"
 
     - name: Evaluate Model and Log Metrics
       run: |
-        timestamp=$(cat timestamp.txt) # Use the timestamp in your training script
-        python ./src/evaluate_model.py  --timestamp "$timestamp" # Assuming you have a script for model evaluation
-        metrics_filename="${timestamp}_metrics.json"
-        mv $metrics_filename $GITHUB_WORKSPACE/metrics/$metrics_filename
-      continue-on-error: false  # Continue even if evaluation fails
+        timestamp=$(cat timestamp.txt)
+        python ./src/evaluate_model.py --timestamp "$timestamp"
+        metrics_filename="metrics/${timestamp}_metrics.json"
+        # Sanity check: confirm file exists
+        test -f "$metrics_filename" && echo "✅ Found $metrics_filename" || (echo "❌ Missing $metrics_filename"; ls -la metrics; exit 1)
+
+    - name: Run unit tests
+      run: |
+        pytest -v test/test_model_training.py
+        pytest -v test/test_evaluate_model.py
 
     - name: Store and Version the New Model
       run: |
         timestamp=$(cat timestamp.txt)
-        model_filename="model_${timestamp}_dt_model.joblib"
-        mv $model_filename $GITHUB_WORKSPACE/models/$model_filename
+        model_filename="models/model_${timestamp}_rf_model.joblib"
+        test -f "$model_filename" && echo "✅ Found $model_filename" || (echo "❌ Missing $model_filename"; ls -la models; exit 1)
 
     - name: Commit and Push Changes
       run: |
-        git config --global user.email "26876927+raminmohammadi@users.noreply.github.com"
-        git config --global user.name "raminmohammadi"
-        git add $GITHUB_WORKSPACE/metrics/$metrics_filename $GITHUB_WORKSPACE/models/$model_filename
-        git commit -m "Add metrics and updated model"
-        git push
+        git config --global user.email "priyankasenthil25@gmail.com"
+        git config --global user.name "priyanka-senthil"
+        timestamp=$(cat timestamp.txt)
+        metrics_filename="metrics/${timestamp}_metrics.json"
+        model_filename="models/model_${timestamp}_rf_model.joblib"
+        
+        # Pull latest changes with rebase
+        git pull --rebase origin main || echo "Nothing to pull"
+        
+        git add "$metrics_filename" "$model_filename"
+        git commit -m "Add metrics and updated model [scheduled]" || echo "No changes to commit"
+        
+        # Push with retry on conflict
+        git push || (git pull --rebase origin main && git push)
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

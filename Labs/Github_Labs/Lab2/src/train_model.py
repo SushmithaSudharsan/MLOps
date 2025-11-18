@@ -1,72 +1,63 @@
-import os
-import pickle
 import argparse
+import datetime
+import os
 from joblib import dump
+import mlflow
 from sklearn.datasets import load_wine
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, f1_score
-import mlflow
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+    # === 0️⃣ Argument parsing ===
     parser = argparse.ArgumentParser()
-    parser.add_argument("--timestamp", type=str, required=True)
-    parser.add_argument("--base_dir", type=str, default=os.getcwd(),
-                        help="Base directory for models, data, and mlruns (default: GitHub workspace root)")
+    parser.add_argument("--timestamp", type=str, required=True,
+                        help="Timestamp from GitHub Actions")
     args = parser.parse_args()
-
     timestamp = args.timestamp
-    base_dir = args.base_dir
-    print(f"[train_model.py] Timestamp: {timestamp}")
-    print(f"[train_model.py] Base directory: {base_dir}")
+    print(f"Timestamp received from GitHub Actions: {timestamp}")
 
-    # Paths
-    model_dir = os.path.join(base_dir, "models")
-    data_dir = os.path.join(base_dir, "data")
-    mlruns_dir = os.path.join(base_dir, "mlruns")
+    # === 1️⃣ Load dataset ===
+    data = load_wine()
+    X, y = data.data, data.target
+    print(f"Dataset loaded → X shape: {X.shape}, y shape: {y.shape}")
 
-    os.makedirs(model_dir, exist_ok=True)
-    os.makedirs(data_dir, exist_ok=True)
-    os.makedirs(mlruns_dir, exist_ok=True)
+    # Split into train/test
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42)
+    print(
+        f"Train/Test split → X_train: {X_train.shape}, X_test: {X_test.shape}")
 
-    # Load dataset
-    wine = load_wine()
-    X = wine.data
-    y = wine.target
-    print(f"[train_model.py] Dataset shape: {X.shape}")
+    # === 2️⃣ Train model ===
+    forest = RandomForestClassifier(random_state=42)
+    forest.fit(X_train, y_train)
+    print("RandomForest model trained ✅")
 
-    # Save dataset
-    with open(os.path.join(data_dir, 'data.pickle'), 'wb') as f:
-        pickle.dump(X, f)
-    with open(os.path.join(data_dir, 'target.pickle'), 'wb') as f:
-        pickle.dump(y, f)
+    # === 3️⃣ Evaluate on test set ===
+    y_pred = forest.predict(X_test)
+    acc = accuracy_score(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred, average='macro')  # Macro F1 for multi-class
+    print(f"Test Accuracy: {acc:.4f}, F1 Score: {f1:.4f}")
 
-    # MLflow setup
-    mlflow.set_tracking_uri(mlruns_dir)
-    experiment_name = f"Wine_{timestamp}"
-    try:
-        experiment_id = mlflow.create_experiment(experiment_name)
-    except:
-        experiment_id = mlflow.get_experiment_by_name(experiment_name).experiment_id
+    # === 4️⃣ Log with MLflow ===
+    mlflow.set_tracking_uri("./mlruns")
+    experiment_name = f"wine_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    mlflow.set_experiment(experiment_name)
+    with mlflow.start_run(run_name="RandomForest_Wine"):
+        mlflow.log_param("n_features", X.shape[1])
+        mlflow.log_param("algorithm", "RandomForestClassifier")
+        mlflow.log_metric("accuracy", acc)
+        mlflow.log_metric("f1_score", f1)
 
-    with mlflow.start_run(experiment_id=experiment_id, run_name="Wine Dataset"):
-        mlflow.log_params({
-            "dataset_shape": X.shape,
-            "num_classes": len(set(y))
-        })
+    # === 5️⃣ Save artifacts ===
+    os.makedirs("models", exist_ok=True)
+    model_filename = f"models/model_{timestamp}_rf_model.joblib"
+    dump(forest, model_filename)
+    print(f"Model saved → {model_filename}")
 
-        # Train model
-        clf = RandomForestClassifier(random_state=0)
-        clf.fit(X, y)
-        y_pred = clf.predict(X)
+    os.makedirs("data", exist_ok=True)
+    from joblib import dump as save_obj
+    save_obj((X_test, y_test), "data/test_split.joblib")
+    print("Test split saved → data/test_split.joblib")
 
-        # Log metrics
-        mlflow.log_metrics({
-            "accuracy": accuracy_score(y, y_pred),
-            "f1_score": f1_score(y, y_pred, average='macro')
-        })
-
-        # Save model
-        model_filename = f"model_{timestamp}_rf_model.joblib"
-        model_path = os.path.join(model_dir, model_filename)
-        dump(clf, model_path)
-        print(f"[train_model.py] Model saved: {model_path}")
+    print("✅ Training complete for Wine dataset.")
