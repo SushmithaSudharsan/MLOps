@@ -6,18 +6,20 @@ from sklearn.datasets import load_wine
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, f1_score
 import mlflow
-import datetime
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--timestamp", type=str, required=True)
+    parser.add_argument("--base_dir", type=str, default=os.getcwd(),
+                        help="Base directory for models, data, and mlruns (default: GitHub workspace root)")
     args = parser.parse_args()
 
     timestamp = args.timestamp
+    base_dir = args.base_dir
     print(f"[train_model.py] Timestamp: {timestamp}")
+    print(f"[train_model.py] Base directory: {base_dir}")
 
     # Paths
-    base_dir = "Labs/Github_Labs/Lab2"
     model_dir = os.path.join(base_dir, "models")
     data_dir = os.path.join(base_dir, "data")
     mlruns_dir = os.path.join(base_dir, "mlruns")
@@ -39,14 +41,12 @@ if __name__ == '__main__':
         pickle.dump(y, f)
 
     # MLflow setup
-
     mlflow.set_tracking_uri(mlruns_dir)
     experiment_name = f"Wine_{timestamp}"
     try:
         experiment_id = mlflow.create_experiment(experiment_name)
     except:
-        experiment_id = mlflow.get_experiment_by_name(
-            experiment_name).experiment_id
+        experiment_id = mlflow.get_experiment_by_name(experiment_name).experiment_id
 
     with mlflow.start_run(experiment_id=experiment_id, run_name="Wine Dataset"):
         mlflow.log_params({
@@ -67,6 +67,6 @@ if __name__ == '__main__':
 
         # Save model
         model_filename = f"model_{timestamp}_rf_model.joblib"
-        dump(clf, os.path.join(model_dir, model_filename))
-        print(
-            f"[train_model.py] Model saved: {os.path.join(model_dir, model_filename)}")
+        model_path = os.path.join(model_dir, model_filename)
+        dump(clf, model_path)
+        print(f"[train_model.py] Model saved: {model_path}")

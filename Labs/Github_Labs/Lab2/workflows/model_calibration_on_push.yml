@@ -34,7 +34,7 @@ jobs:
 
     - name: Retrain Model
       run: |
-        python ./src/train_model.py --timestamp "${{ steps.timestamp.outputs.timestamp }}"
+        python ./src/train_model.py --timestamp "${{ steps.timestamp.outputs.timestamp }}" --base_dir "$GITHUB_WORKSPACE"
 
     - name: Evaluate Model and Log Metrics
       run: |
