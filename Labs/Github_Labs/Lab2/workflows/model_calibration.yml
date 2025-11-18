@@ -1,6 +1,7 @@
 name: Periodic Model Calibration
 
 on:
+  workflow_dispatch:       # allows manual trigger
   schedule:
     - cron: '0 0 * * *'  # every day at midnight
 
@@ -58,5 +59,4 @@ jobs:
           git commit -m "Add model + metrics for $(cat timestamp.txt)" || echo "Nothing to commit"
           git push origin main
         env:
-        
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
