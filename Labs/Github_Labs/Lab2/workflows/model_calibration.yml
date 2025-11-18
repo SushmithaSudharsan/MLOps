@@ -2,7 +2,7 @@ name: Periodic Model Calibration
 
 on: 
   schedule:
-    - cron: '0 0 * * *'  #minutes, hours, day, month, day of week 
+    - cron: '0 0 * * *'  # daily at midnight
   workflow_dispatch:
 
 permissions:
@@ -13,14 +13,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
     - name: Checkout code
       uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-        fetch-depth: 0  # Fetch full history for proper rebasing
+        fetch-depth: 0
 
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: 3.9
 
@@ -28,62 +29,61 @@ jobs:
       run: pip install -r requirements.txt
 
     - name: Generate and Store Timestamp
+      id: timestamp
       run: |
-        timestamp=$(date '+%Y%m%d%H%M%S')
-        echo "$timestamp" > timestamp.txt
-      id: timestamp 
+        ts=$(date '+%Y%m%d%H%M%S')
+        echo "$ts" > timestamp.txt
+        echo "timestamp=$ts" >> $GITHUB_OUTPUT
 
-    - name: Check File Permissions
+    - name: Ensure directories exist
       run: |
-        ls -l ./src/train_model.py
+        mkdir -p models
+        mkdir -p metrics
 
-    - name: Set File Permissions
+    - name: Clean old artifacts (but do NOT delete data/)
       run: |
-        chmod +x ./src/train_model.py
-
-    - name: Clean old artifacts
-      run: |
-        rm -rf models data metrics
+        rm -rf models/*
+        rm -rf metrics/*
 
     - name: Retrain Model
       run: |
-        timestamp=$(cat timestamp.txt)
-        python ./src/train_model.py --timestamp "$timestamp"
+        python ./src/train_model.py --timestamp "${{ steps.timestamp.outputs.timestamp }}"
 
     - name: Evaluate Model and Log Metrics
       run: |
-        timestamp=$(cat timestamp.txt)
+        timestamp="${{ steps.timestamp.outputs.timestamp }}"
         python ./src/evaluate_model.py --timestamp "$timestamp"
-        metrics_filename="metrics/${timestamp}_metrics.json"
-        # Sanity check: confirm file exists
-        test -f "$metrics_filename" && echo "✅ Found $metrics_filename" || (echo "❌ Missing $metrics_filename"; ls -la metrics; exit 1)
+
+        metrics_file="metrics/${timestamp}_metrics.json"
+        test -f "$metrics_file" && echo "✅ Metrics generated: $metrics_file" \
+          || (echo "❌ Metrics file missing"; ls -la metrics; exit 1)
 
     - name: Run unit tests
       run: |
         pytest -v test/test_model_training.py
         pytest -v test/test_evaluate_model.py
 
-    - name: Store and Version the New Model
+    - name: Verify Model Exists
       run: |
-        timestamp=$(cat timestamp.txt)
-        model_filename="models/model_${timestamp}_rf_model.joblib"
-        test -f "$model_filename" && echo "✅ Found $model_filename" || (echo "❌ Missing $model_filename"; ls -la models; exit 1)
+        timestamp="${{ steps.timestamp.outputs.timestamp }}"
+        model_file="models/model_${timestamp}_rf_model.joblib"
+        test -f "$model_file" && echo "✅ Model generated: $model_file" \
+          || (echo "❌ Model file missing"; ls -la models; exit 1)
 
     - name: Commit and Push Changes
-      run: |
-        git config --global user.email "priyankasenthil25@gmail.com"
-        git config --global user.name "priyanka-senthil"
-        timestamp=$(cat timestamp.txt)
-        metrics_filename="metrics/${timestamp}_metrics.json"
-        model_filename="models/model_${timestamp}_rf_model.joblib"
-        
-        # Pull latest changes with rebase
-        git pull --rebase origin main || echo "Nothing to pull"
-        
-        git add "$metrics_filename" "$model_filename"
-        git commit -m "Add metrics and updated model [scheduled]" || echo "No changes to commit"
-        
-        # Push with retry on conflict
-        git push || (git pull --rebase origin main && git push)
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        git config --global user.email "sushmithagithubprojects@gmail.com"
+        git config --global user.name "SushmithaSudharsan"
+
+        timestamp="${{ steps.timestamp.outputs.timestamp }}"
+        metrics_file="metrics/${timestamp}_metrics.json"
+        model_file="models/model_${timestamp}_rf_model.joblib"
+
+        git pull --rebase origin main || echo "Nothing to pull"
+
+        git add "$metrics_file" "$model_file"
+        git commit -m "Add new calibrated model + metrics [scheduled]" || echo "No changes to commit"
+
+        git push || (git pull --rebase origin main && git push)

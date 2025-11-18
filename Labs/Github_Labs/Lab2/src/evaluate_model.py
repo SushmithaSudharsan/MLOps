@@ -1,60 +1,77 @@
 import os
 import joblib
 import argparse
+import json
 from sklearn.metrics import accuracy_score, f1_score
 
 if __name__ == "__main__":
+
+    # -----------------------------
+    # 1️⃣ Parse arguments
+    # -----------------------------
     parser = argparse.ArgumentParser()
     parser.add_argument("--timestamp", type=str, required=True,
-                        help="Timestamp from GitHub Actions")
+                        help="Timestamp used in model filename")
     parser.add_argument("--base_dir", type=str, default=".",
-                        help="Base directory for models and data")
+                        help="Base directory where models/data/metrics are stored")
     args = parser.parse_args()
 
     timestamp = args.timestamp
     base_dir = args.base_dir
-    print(f"Evaluating model for timestamp {timestamp}")
-    print(f"Base directory: {base_dir}")
 
-    # Paths
+    print(f"Evaluating model for timestamp → {timestamp}")
+    print(f"Base directory → {base_dir}")
+
+    # -----------------------------
+    # 2️⃣ Construct paths
+    # -----------------------------
     model_dir = os.path.join(base_dir, "models")
     data_dir = os.path.join(base_dir, "data")
     metrics_dir = os.path.join(base_dir, "metrics")
+
     os.makedirs(metrics_dir, exist_ok=True)
 
-    # Load model
-    model_filename = os.path.join(
-        model_dir, f"model_{timestamp}_rf_model.joblib")
-    if not os.path.exists(model_filename):
-        raise FileNotFoundError(f"Model file not found: {model_filename}")
-    clf = joblib.load(model_filename)
-    print(f"Loaded model: {model_filename}")
+    model_path = os.path.join(model_dir, f"model_{timestamp}_rf_model.joblib")
+    test_split_path = os.path.join(data_dir, "test_split.joblib")
+    metrics_output_path = os.path.join(
+        metrics_dir, f"{timestamp}_metrics.json")
 
-    # Load test split
-    test_split_file = os.path.join(data_dir, "test_split.joblib")
-    if not os.path.exists(test_split_file):
-        raise FileNotFoundError(
-            f"Test split file not found: {test_split_file}")
-    X_test, y_test = joblib.load(test_split_file)
-    print(
-        f"Loaded test split: X_test shape={X_test.shape}, y_test shape={y_test.shape}")
+    # -----------------------------
+    # 3️⃣ Load model
+    # -----------------------------
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"❌ Model not found: {model_path}")
 
-    # Predict and evaluate
+    clf = joblib.load(model_path)
+    print(f"Loaded model → {model_path}")
+
+    # -----------------------------
+    # 4️⃣ Load test split
+    # -----------------------------
+    if not os.path.exists(test_split_path):
+        raise FileNotFoundError(f"❌ Test data not found: {test_split_path}")
+
+    X_test, y_test = joblib.load(test_split_path)
+    print(f"Loaded test split → X_test={X_test.shape}, y_test={y_test.shape}")
+
+    # -----------------------------
+    # 5️⃣ Predict and evaluate
+    # -----------------------------
     y_pred = clf.predict(X_test)
+
     accuracy = accuracy_score(y_test, y_pred)
-    f1 = f1_score(y_test, y_pred, average='macro')  # Important for multiclass
+    f1 = f1_score(y_test, y_pred, average="macro")  # IMPORTANT for multiclass
 
     metrics = {
         "accuracy": round(accuracy, 4),
         "f1_score": round(f1, 4)
     }
 
-    # Save metrics
-    metrics_filename = os.path.join(metrics_dir, f"{timestamp}_metrics.json")
-    import json
-    with open(metrics_filename, 'w') as f:
+    # -----------------------------
+    # 6️⃣ Save metrics
+    # -----------------------------
+    with open(metrics_output_path, "w") as f:
         json.dump(metrics, f, indent=4)
 
-    print(f"Metrics saved: {metrics_filename}")
-    print(
-        f"✅ Evaluation complete: Accuracy={metrics['accuracy']}, F1 Score={metrics['f1_score']}")
+    print(f"📁 Metrics saved → {metrics_output_path}")
+    print(f"🎉 Evaluation Complete → Accuracy={accuracy:.4f}, F1={f1:.4f}")
