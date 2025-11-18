@@ -49,7 +49,7 @@ jobs:
         timestamp=$(cat timestamp.txt)
         python ./src/evaluate_model.py --timestamp "$timestamp"
 
-        metrics_filename="metrics/${timestamp}_metrics.json"
+        metrics_filename="lab2/metrics/${timestamp}_metrics.json"
         test -f "$metrics_filename" && echo "✅ Metrics found: $metrics_filename" || (echo "❌ Missing $metrics_filename"; ls -la metrics; exit 1)
 
     - name: Run unit tests
