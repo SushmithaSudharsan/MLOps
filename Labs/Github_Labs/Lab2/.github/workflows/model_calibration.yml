@@ -1,6 +1,5 @@
 name: Periodic Model Calibration
 
-workflow_dispatch:
 on: 
   schedule:
     - cron: '0 0 * * *'  #minutes, hours, day, month, day of week 
