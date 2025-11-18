@@ -69,28 +69,28 @@ jobs:
         ls -lh Labs/Github_Labs/Lab2/plots/
 
     - name: Commit and push models + metrics
-  run: |
-    git config --global user.email "github-actions@github.com"
-    git config --global user.name "GitHub Actions"
+      run: |
+        git config --global user.email "github-actions@github.com"
+        git config --global user.name "GitHub Actions"
 
-    # Ensure directories exist
-    mkdir -p Labs/Github_Labs/Lab2/models
-    mkdir -p Labs/Github_Labs/Lab2/metrics
+        # Ensure directories exist
+        mkdir -p Labs/Github_Labs/Lab2/models
+        mkdir -p Labs/Github_Labs/Lab2/metrics
 
-    # Add generated files
-    git add Labs/Github_Labs/Lab2/models/* Labs/Github_Labs/Lab2/metrics/* || true
+        # Add generated files
+        git add Labs/Github_Labs/Lab2/models/* Labs/Github_Labs/Lab2/metrics/* || true
 
-    # Add .gitkeep to keep folders if empty
-    touch Labs/Github_Labs/Lab2/models/.gitkeep
-    touch Labs/Github_Labs/Lab2/metrics/.gitkeep
-    git add Labs/Github_Labs/Lab2/models/.gitkeep Labs/Github_Labs/Lab2/metrics/.gitkeep
+        # Add .gitkeep to keep folders if empty
+        touch Labs/Github_Labs/Lab2/models/.gitkeep
+        touch Labs/Github_Labs/Lab2/metrics/.gitkeep
+        git add Labs/Github_Labs/Lab2/models/.gitkeep Labs/Github_Labs/Lab2/metrics/.gitkeep
 
-    # Commit only if there are changes
-    if git diff --cached --quiet; then
-      echo "No changes to commit"
-    else
-      git commit -m "Update models and metrics for $(date '+%Y-%m-%d %H:%M:%S')"
-      git push origin main
-    fi
-  env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Commit only if there are changes
+        if git diff --cached --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "Update models and metrics for $(date '+%Y-%m-%d %H:%M:%S')"
+          git push origin main
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
