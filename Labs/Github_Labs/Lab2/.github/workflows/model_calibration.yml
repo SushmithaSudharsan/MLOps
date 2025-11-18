@@ -2,7 +2,7 @@ name: Periodic Model Calibration
 
 on: 
   schedule:
-    - cron: '0 0 * * *'  #minutes, hours, day, month, day of week 
+    - cron: '0 0 * * *'
   workflow_dispatch:
 
 permissions:
@@ -17,7 +17,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-        fetch-depth: 0  # Fetch full history for proper rebasing
+        fetch-depth: 0
 
     - name: Set up Python
       uses: actions/setup-python@v2
@@ -33,17 +33,11 @@ jobs:
         echo "$timestamp" > timestamp.txt
       id: timestamp 
 
-    - name: Check File Permissions
-      run: |
-        ls -l ./src/train_model.py
-
     - name: Set File Permissions
-      run: |
-        chmod +x ./src/train_model.py
+      run: chmod +x ./src/train_model.py
 
     - name: Clean old artifacts
-      run: |
-        rm -rf models data metrics
+      run: rm -rf models data metrics
 
     - name: Retrain Model
       run: |
@@ -54,8 +48,8 @@ jobs:
       run: |
         timestamp=$(cat timestamp.txt)
         python ./src/evaluate_model.py --timestamp "$timestamp"
+
         metrics_filename="metrics/${timestamp}_metrics.json"
-        # Sanity check: confirm file exists
         test -f "$metrics_filename" && echo "✅ Found $metrics_filename" || (echo "❌ Missing $metrics_filename"; ls -la metrics; exit 1)
 
     - name: Run unit tests
@@ -73,17 +67,16 @@ jobs:
       run: |
         git config --global user.email "sushmithagithubprojects@gmail.com"
         git config --global user.name "SushmithaSudharsan"
+
         timestamp=$(cat timestamp.txt)
         metrics_filename="metrics/${timestamp}_metrics.json"
         model_filename="models/model_${timestamp}_rf_model.joblib"
-        
-        # Pull latest changes with rebase
+
         git pull --rebase origin main || echo "Nothing to pull"
         
         git add "$metrics_filename" "$model_filename"
         git commit -m "Add metrics and updated model [scheduled]" || echo "No changes to commit"
-        
-        # Push with retry on conflict
+
         git push || (git pull --rebase origin main && git push)
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

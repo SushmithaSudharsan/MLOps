@@ -4,6 +4,12 @@ import os
 from joblib import load
 from sklearn.metrics import accuracy_score, f1_score
 
+import os
+
+os.makedirs("models", exist_ok=True)
+os.makedirs("metrics", exist_ok=True)
+os.makedirs("data", exist_ok=True)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--timestamp", type=str, required=True,
