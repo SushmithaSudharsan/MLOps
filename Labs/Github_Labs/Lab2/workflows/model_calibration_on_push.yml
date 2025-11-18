@@ -1,9 +1,8 @@
-name: Model Retraining on Push to Main
+name: Periodic Model Calibration
 
-on:
-  push:
-    branches:
-      - main  # Trigger the workflow on pushes to the main branch
+on: 
+  schedule:
+    - cron: '0 0 * * *'  # Every day at midnight
 
 jobs:
   retrain:
@@ -21,45 +20,37 @@ jobs:
     - name: Install dependencies
       run: pip install -r requirements.txt
 
-    - name: Generate and Store Timestamp
+    - name: Ensure directories exist
       run: |
-        timestamp=$(date '+%Y%m%d%H%M%S')
-        echo "$timestamp" > timestamp.txt
-      id: timestamp 
+        mkdir -p $GITHUB_WORKSPACE/models
+        mkdir -p $GITHUB_WORKSPACE/metrics
 
-    - name: Check File Permissions
-      run: |
-        ls -l ./src/train_model.py
+    - name: Generate Timestamp
+      id: timestamp
+      run: echo "timestamp=$(date '+%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
 
     - name: Set File Permissions
-      run: |
-        chmod +x ./src/train_model.py #making it executable
+      run: chmod +x ./src/train_model.py ./src/evaluate_model.py
 
     - name: Retrain Model
       run: |
-        timestamp=$(cat timestamp.txt) # Use the timestamp in your training script
-        python ./src/train_model.py --timestamp "$timestamp"
+        python ./src/train_model.py --timestamp "${{ steps.timestamp.outputs.timestamp }}"
 
     - name: Evaluate Model and Log Metrics
       run: |
-        timestamp=$(cat timestamp.txt) # Use the timestamp in your training script
-        python ./src/evaluate_model.py  --timestamp "$timestamp" # Assuming you have a script for model evaluation
-        metrics_filename="${timestamp}_metrics.json"
-        mv $metrics_filename $GITHUB_WORKSPACE/metrics/$metrics_filename
-      continue-on-error: false  # Continue even if evaluation fails
-
-    - name: Store and Version the New Model
-      run: |
-        timestamp=$(cat timestamp.txt)
-        model_filename="model_${timestamp}_dt_model.joblib"
-        mv $model_filename $GITHUB_WORKSPACE/models/$model_filename
+        python ./src/evaluate_model.py --timestamp "${{ steps.timestamp.outputs.timestamp }}" --base_dir "$GITHUB_WORKSPACE"
 
     - name: Commit and Push Changes
       run: |
+        timestamp="${{ steps.timestamp.outputs.timestamp }}"
+        model_filename="model_${timestamp}_rf_model.joblib"
+        metrics_filename="${timestamp}_metrics.json"
+
         git config --global user.email "26876927+raminmohammadi@users.noreply.github.com"
         git config --global user.name "raminmohammadi"
-        git add $GITHUB_WORKSPACE/metrics/$metrics_filename $GITHUB_WORKSPACE/models/$model_filename
-        git commit -m "Add metrics and updated model"
+
+        git add $GITHUB_WORKSPACE/models/$model_filename $GITHUB_WORKSPACE/metrics/$metrics_filename
+        git commit -m "Add metrics and updated model for timestamp $timestamp"
         git push
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

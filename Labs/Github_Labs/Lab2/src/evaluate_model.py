@@ -8,16 +8,21 @@ from sklearn.metrics import f1_score
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--timestamp", type=str, required=True)
+    parser.add_argument("--base_dir", type=str, default=os.getcwd(),
+                        help="Base directory for models, metrics, and data (default: GitHub workspace root)")
     args = parser.parse_args()
 
     timestamp = args.timestamp
+    base_dir = args.base_dir
     print(f"[evaluate_model.py] Timestamp: {timestamp}")
+    print(f"[evaluate_model.py] Base directory: {base_dir}")
 
     # Paths
-    base_dir = "Labs/Github_Labs/Lab2"
     model_dir = os.path.join(base_dir, "models")
     metrics_dir = os.path.join(base_dir, "metrics")
     data_dir = os.path.join(base_dir, "data")
+
+    # Ensure directories exist
     os.makedirs(metrics_dir, exist_ok=True)
 
     # Load model
@@ -28,13 +33,13 @@ if __name__ == '__main__':
     clf = joblib.load(model_filename)
     print(f"[evaluate_model.py] Loaded model: {model_filename}")
 
-    # Load the dataset saved during training
+    # Load dataset
     X_file = os.path.join(data_dir, "data.pickle")
     y_file = os.path.join(data_dir, "target.pickle")
-
     if not os.path.exists(X_file) or not os.path.exists(y_file):
         raise FileNotFoundError(
-            "Training data not found. Make sure train_model.py has run.")
+            "Training data not found. Make sure train_model.py has run."
+        )
 
     with open(X_file, 'rb') as f:
         X = pickle.load(f)
