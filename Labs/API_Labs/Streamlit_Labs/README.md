@@ -233,35 +233,4 @@ The app uses a **Voting Classifier** combining three powerful algorithms:
 
 This app uses the **UCI Wine Recognition Dataset**, a classic machine learning benchmark containing chemical analysis of wines from three different cultivars in Italy.
 
-## 👩‍💻 Author
-
-**Sushmitha**  
-Master's in Data Analytics Engineering  
-Northeastern University
-
-📧 Contact: [Your Email]  
-💼 LinkedIn: [Your LinkedIn]  
-🐙 GitHub: [Your GitHub]
-
-## 🙏 Acknowledgments
-
-- **Dataset:** UCI Machine Learning Repository
-- **ML Libraries:** scikit-learn team
-- **Visualization:** Plotly community
-- **Framework:** Streamlit developers
-- **Institution:** Northeastern University
-
-## 📄 License
-
-This project is part of academic coursework at Northeastern University.  
-Created for educational purposes in the MLOps course.
-
-## 🆘 Need Help?
-
-1. Check the troubleshooting section above
-2. Ensure all packages are installed: `pip install -r requirements.txt`
-3. Verify Python version is 3.8 or higher
-4. Make sure `wine_model.pkl` exists (run training script)
-5. Check terminal for detailed error messages
-
 ---
